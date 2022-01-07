@@ -56,12 +56,12 @@ Build and start everything, from scratch: `make all`
  
 Or, run the individual steps in this order:
 
+ * Create the initial Phoenix project: `make init`
  * Build the docker container image: `make build`
- * Create the initial phoenix project: `make init`
  * Create the database: `make database`
- * Start the server, with live reload (press `Ctrl-C` to stop): `make serve`
+ * Start the live reload server: `make serve` (press `Ctrl-C` twice to stop)
 
-Open your browser to [http://localhost:4000](http://localhost:4000)
+Open your web browser to [http://localhost:4000](http://localhost:4000)
 
 # Public Domain License
 

@@ -24,6 +24,8 @@ PHOENIX_VERSION ?= v1.6.6
 DOCKER_ORG ?= localhost
 ## Construct full image tag:
 TAG ?= "${DOCKER_ORG}/${APP}:${ENV}-${VERSION}"
+## Initial tag for build without any project files:
+TAG_INIT ?= ${DOCKER_ORG}/phoenix_init_empty
 
 ## Choose local database container name:
 DATABASE_CONTAINER ?= postgresql-phoenix-${ENV}
@@ -37,23 +39,28 @@ POSTGRES_DB ?= ${IMAGE}
 ## HTTP port to serve
 HTTP_PORT ?= 4000
 
-RUN_ARGS = --rm -it -v ${PWD}:/root/src -p ${HTTP_PORT}:4000 --network ${DATABASE_CONTAINER} ${TAG}
+RUN_ARGS = --rm -it -v ${PWD}:/root/src -p ${HTTP_PORT}:4000 --network ${DATABASE_CONTAINER}
 
 .PHONY: help # List the Makefile targets and their descriptions
 help:
 	@echo "Makefile help:"
 	@grep '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t20
 
+.PHONY: build_initial
+build_initial:
+	${DOCKER} build -t ${TAG_INIT} --build-arg=ELIXIR_IMAGE=${ELIXIR_IMAGE} --build-arg=APP_DIR=. --build-arg=PHOENIX_VERSION=${PHOENIX_VERSION} .
+
+
 .PHONY: build # Build docker image
 build:
 	${DOCKER} build -t ${TAG} --build-arg=ELIXIR_IMAGE=${ELIXIR_IMAGE} --build-arg=APP_DIR=${APP} --build-arg=PHOENIX_VERSION=${PHOENIX_VERSION} .
 
 .PHONY: init # Initialize new project in current directory
-init:
-	test -d ${APP} || ${DOCKER} run ${RUN_ARGS} mix phx.new ${APP}
-	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} sed -i "s/hostname: \"localhost\"/hostname: \"${DATABASE_CONTAINER}\"/" config/${ENV}.exs
+init: build_initial
+	test -d ${APP} || ${DOCKER} run ${RUN_ARGS} ${TAG_INIT} bash -c "yes | mix phx.new ${APP}"
+	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG_INIT} sed -i "s/hostname: \"localhost\"/hostname: \"${DATABASE_CONTAINER}\"/" config/${ENV}.exs
 	@echo "Database hostname written to config/${ENV}.exs"
-	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} sed -i "s/http: \[ip: {127, 0, 0, 1}, port: 4000\]/http: [ip: {0, 0, 0, 0}, port: 4000]/" config/${ENV}.exs
+	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG_INIT} sed -i "s/http: \[ip: {127, 0, 0, 1}, port: 4000\]/http: [ip: {0, 0, 0, 0}, port: 4000]/" config/${ENV}.exs
 	@echo "Changed listening IP address to 0.0.0.0 in config/${ENV}.exs"
 
 .PHONY: network
@@ -66,7 +73,7 @@ database: network
 	${DOCKER} container inspect ${DATABASE_CONTAINER} >/dev/null || ${DOCKER} run --rm -d --name ${DATABASE_CONTAINER} --network ${DATABASE_CONTAINER} -v ${DATABASE_CONTAINER}:/var/lib/postgresql/data -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_DB=${POSTGRES_DB} docker.io/postgres
 	${DOCKER} ps -a | grep ${DATABASE_CONTAINER}
 	@echo "Database container started: ${DATABASE_CONTAINER}"
-	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} mix ecto.create
+	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG} mix ecto.create
 
 .PHONY: psql # Run `psql` database shell
 psql:
@@ -82,11 +89,11 @@ destroy_db:
 
 .PHONY: shell # run BASH shell
 shell: network
-	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} /bin/bash
+	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG} /bin/bash
 
 .PHONY: serve # Run the service container
 serve: network
-	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} mix phx.server
+	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG} mix phx.server
 
 .PHONY: all # Run everything necessary to start up from scratch
-all: build network init database serve
+all: build_initial network init build database serve
