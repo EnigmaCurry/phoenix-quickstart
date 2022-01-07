@@ -62,3 +62,8 @@ Or, run the individual steps in this order:
  * Start the server, with live reload (press `Ctrl-C` to stop): `make serve`
 
 Open your browser to [http://localhost:4000](http://localhost:4000)
+
+# Public Domain License
+
+This quickstart template is released to the public domain (CC0-1.0). Use it
+however you wish. See [LICENSE.txt](LICENSE.txt)

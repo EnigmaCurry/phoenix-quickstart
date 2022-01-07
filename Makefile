@@ -1,4 +1,5 @@
 ## Update these default config variables, or override them from environment variables:
+## Original public domain template from https://github.com/EnigmaCurry/phoenix-quickstart
 
 ## Choose your application name:
 ## Must start with a letter and have only lowercase letters, numbers, and underscore
