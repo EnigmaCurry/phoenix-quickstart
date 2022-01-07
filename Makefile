@@ -57,7 +57,7 @@ build:
 
 .PHONY: init # Initialize new project in current directory
 init: network build_initial
-	test -d ${APP} || ${DOCKER} run ${RUN_ARGS} ${TAG_INIT} bash -c "yes | mix phx.new ${APP}"
+	test -d ${APP} || ${DOCKER} run ${RUN_ARGS} ${TAG_INIT} mix phx.new ${APP}
 	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG_INIT} sed -i "s/hostname: \"localhost\"/hostname: \"${DATABASE_CONTAINER}\"/" config/${ENV}.exs
 	@echo "Database hostname written to config/${ENV}.exs"
 	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG_INIT} sed -i "s/http: \[ip: {127, 0, 0, 1}, port: 4000\]/http: [ip: {0, 0, 0, 0}, port: 4000]/" config/${ENV}.exs
