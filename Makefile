@@ -56,7 +56,7 @@ build:
 	${DOCKER} build -t ${TAG} --build-arg=ELIXIR_IMAGE=${ELIXIR_IMAGE} --build-arg=APP_DIR=${APP} --build-arg=PHOENIX_VERSION=${PHOENIX_VERSION} .
 
 .PHONY: init # Initialize new project in current directory
-init: build_initial
+init: network build_initial
 	test -d ${APP} || ${DOCKER} run ${RUN_ARGS} ${TAG_INIT} bash -c "yes | mix phx.new ${APP}"
 	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG_INIT} sed -i "s/hostname: \"localhost\"/hostname: \"${DATABASE_CONTAINER}\"/" config/${ENV}.exs
 	@echo "Database hostname written to config/${ENV}.exs"
@@ -76,7 +76,7 @@ database: network
 	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG} mix ecto.create
 
 .PHONY: psql # Run `psql` database shell
-psql:
+psql: network
 	${DOCKER} exec -it ${DATABASE_CONTAINER} psql ${POSTGRES_DB} ${POSTGRES_USER}
 
 .PHONY: destroy # Destroy all containers and all data
