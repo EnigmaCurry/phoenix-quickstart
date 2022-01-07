@@ -19,6 +19,9 @@ ELIXIR_IMAGE ?= "docker.io/elixir:latest"
 ## Choose Phoenix version:
 ## See tags: https://github.com/phoenixframework/phoenix/tags
 PHOENIX_VERSION ?= v1.6.6
+## Choose the version of NodeJS:
+## (Phoenix needs webpack installed to process static assets)
+NODEJS_VERSION ?= 16.x
 
 ## Your Docker organizational name:
 DOCKER_ORG ?= localhost
@@ -40,6 +43,7 @@ POSTGRES_DB ?= ${IMAGE}
 HTTP_PORT ?= 4000
 
 RUN_ARGS = --rm -it -v ${PWD}:/root/src -p ${HTTP_PORT}:4000 --network ${DATABASE_CONTAINER}
+BUILD_ARGS = --build-arg=ELIXIR_IMAGE=${ELIXIR_IMAGE} --build-arg=APP_DIR=. --build-arg=PHOENIX_VERSION=${PHOENIX_VERSION} --build-arg=NODEJS_VERSION=${NODEJS_VERSION}
 
 .PHONY: help # List the Makefile targets and their descriptions
 help:
@@ -48,12 +52,12 @@ help:
 
 .PHONY: build_initial
 build_initial:
-	${DOCKER} build -t ${TAG_INIT} --build-arg=ELIXIR_IMAGE=${ELIXIR_IMAGE} --build-arg=APP_DIR=. --build-arg=PHOENIX_VERSION=${PHOENIX_VERSION} .
+	${DOCKER} build -t ${TAG_INIT} ${BUILD_ARGS} .
 
 
 .PHONY: build # Build docker image
 build:
-	${DOCKER} build -t ${TAG} --build-arg=ELIXIR_IMAGE=${ELIXIR_IMAGE} --build-arg=APP_DIR=${APP} --build-arg=PHOENIX_VERSION=${PHOENIX_VERSION} .
+	${DOCKER} build -t ${TAG} ${BUILD_ARGS} .
 
 .PHONY: init # Initialize new project in current directory
 init: network build_initial
