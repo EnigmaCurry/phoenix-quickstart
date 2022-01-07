@@ -42,7 +42,7 @@ POSTGRES_DB ?= ${IMAGE}
 ## HTTP port to serve
 HTTP_PORT ?= 4000
 
-RUN_ARGS = --rm -it -v ${PWD}:/root/src -p ${HTTP_PORT}:4000 --network ${DATABASE_CONTAINER}
+RUN_ARGS = --rm -v ${PWD}:/root/src -p ${HTTP_PORT}:4000 --network ${DATABASE_CONTAINER}
 BUILD_ARGS = --build-arg=ELIXIR_IMAGE=${ELIXIR_IMAGE} --build-arg=APP_DIR=. --build-arg=PHOENIX_VERSION=${PHOENIX_VERSION} --build-arg=NODEJS_VERSION=${NODEJS_VERSION}
 
 .PHONY: help # List the Makefile targets and their descriptions
@@ -61,7 +61,7 @@ build:
 
 .PHONY: init # Initialize new project in current directory
 init: network build_initial
-	test -d ${APP} || ${DOCKER} run ${RUN_ARGS} ${TAG_INIT} mix phx.new ${APP}
+	test -d ${APP} || ${DOCKER} run ${RUN_ARGS} ${TAG_INIT} bash -c "mix phx.new ${APP} --live && cd ${APP} && mix deps.get"
 	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG_INIT} sed -i "s/hostname: \"localhost\"/hostname: \"${DATABASE_CONTAINER}\"/" config/${ENV}.exs
 	@echo "Database hostname written to config/${ENV}.exs"
 	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG_INIT} sed -i "s/http: \[ip: {127, 0, 0, 1}, port: 4000\]/http: [ip: {0, 0, 0, 0}, port: 4000]/" config/${ENV}.exs
@@ -93,11 +93,11 @@ destroy_db:
 
 .PHONY: shell # run BASH shell
 shell: network
-	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG} /bin/bash
+	${DOCKER} run -it -w /root/src/${APP} ${RUN_ARGS} ${TAG} /bin/bash
 
 .PHONY: serve # Run the service container
 serve: network
-	${DOCKER} run -w /root/src/${APP} ${RUN_ARGS} ${TAG} mix phx.server
+	${DOCKER} run -it -w /root/src/${APP} ${RUN_ARGS} ${TAG} mix phx.server
 
 .PHONY: all # Run everything necessary to start up from scratch
 all: build_initial network init build database serve
