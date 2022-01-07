@@ -46,7 +46,7 @@ help:
 
 .PHONY: build # Build docker image
 build:
-	${DOCKER} build -t ${TAG} --build-arg=ELIXIR_IMAGE=${ELIXIR_IMAGE} --build-arg=PHOENIX_VERSION=${PHOENIX_VERSION} .
+	${DOCKER} build -t ${TAG} --build-arg=ELIXIR_IMAGE=${ELIXIR_IMAGE} --build-arg=APP_DIR=${APP} --build-arg=PHOENIX_VERSION=${PHOENIX_VERSION} .
 
 .PHONY: init # Initialize new project in current directory
 init:

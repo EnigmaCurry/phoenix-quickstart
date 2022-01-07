@@ -1,6 +1,7 @@
 ARG ELIXIR_IMAGE=docker.io/elixir:latest
 FROM ${ELIXIR_IMAGE}
 
+ARG APP_DIR
 ARG PHOENIX_VERSION
 RUN apt-get update && \
     apt-get upgrade -y && \
@@ -10,7 +11,7 @@ RUN apt-get update && \
     mix local.rebar --force
 
 WORKDIR /root/src
-ADD . /root/src
+ADD ${APP_DIR}/ /root/src
 
 EXPOSE 4000
 CMD ["mix", "phx.server"]
