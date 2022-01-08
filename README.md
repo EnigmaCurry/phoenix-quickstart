@@ -52,7 +52,7 @@ instead.
 The Makefile can perform all the steps to create and run the development
 environment. 
 
-Build and start everything, from scratch: `make all`
+Build and start everything, from scratch: `make all` 
  
 Or, run the individual steps in this order:
 
@@ -62,6 +62,11 @@ Or, run the individual steps in this order:
  * Start the live reload server: `make serve` (press `Ctrl-C` twice to stop)
 
 Open your web browser to [http://localhost:4000](http://localhost:4000)
+
+(`make init` is idempotent, you can run it many times, and it will only create
+the project directory if it does not already exist: eg. `test -d ${APP} ||
+${DOCKER} run ...` from the `init` target.)
+
 
 # Public Domain License
 

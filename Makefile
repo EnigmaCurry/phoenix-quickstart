@@ -1,6 +1,9 @@
 ## Update these default config variables, or override them from environment variables:
 ## Original public domain template from https://github.com/EnigmaCurry/phoenix-quickstart
 
+## Hint: ?= is like = but it only sets it if its not already set, to make it
+## possible to override with an environment variable.
+
 ## Choose your application name:
 ## Must start with a letter and have only lowercase letters, numbers, and underscore
 APP ?= phoenix_quickstart
@@ -11,26 +14,32 @@ ENV ?= dev
 
 ## Choose your Docker implementation (podman or docker)
 DOCKER ?= podman
-# DOCKER ?= docker
+# DOCKER = docker
 
 ## Choose Elixir image version:
 ## See docker image tags: https://hub.docker.com/_/elixir
-ELIXIR_IMAGE ?= "docker.io/elixir:latest"
+ELIXIR_REPO ?= docker.io/elixir
+ELIXIR_VERSION ?= 1.13
+ELIXIR_IMAGE = "${ELIXIR_REPO}:${ELIXIR_VERSION}"
 ## Choose Phoenix version:
 ## See tags: https://github.com/phoenixframework/phoenix/tags
 PHOENIX_VERSION ?= v1.6.6
 ## Choose the version of NodeJS:
-## (Phoenix needs webpack installed to process static assets)
+## (Phoenix needs webpack/esbuild installed to process static assets)
 NODEJS_VERSION ?= 16.x
 
 ## Your Docker organizational name:
 DOCKER_ORG ?= localhost
-## Construct full image tag:
-TAG ?= "${DOCKER_ORG}/${APP}:${ENV}-${VERSION}"
 ## Initial tag for build without any project files:
-TAG_INIT ?= ${DOCKER_ORG}/phoenix_init_empty
+TAG_INIT ?= ${DOCKER_ORG}/elixir_phoenix:${ELIXIR_VERSION}-${PHOENIX_VERSION}
+## Construct full image tag:
+## Simple:
+# TAG ?= "${DOCKER_ORG}/${APP}:${ENV}-${VERSION}"
+## Complex, with full elixir and phoenix version numbers:
+TAG ?= "${DOCKER_ORG}/${APP}:${ENV}-${VERSION}-ex-${ELIXIR_VERSION}-phx-${PHOENIX_VERSION}"
 
-## Choose local database container name:
+## Choose local database container name: (This generic default name allows for multiple
+## projects to use the same DB instance within the same named environment)
 DATABASE_CONTAINER ?= postgresql-phoenix-${ENV}
 ## Choose database password:
 POSTGRES_PASSWORD ?= postgres
@@ -43,7 +52,7 @@ POSTGRES_DB ?= ${IMAGE}
 HTTP_PORT ?= 4000
 
 RUN_ARGS = --rm -v ${PWD}:/root/src -p ${HTTP_PORT}:4000 --network ${DATABASE_CONTAINER}
-BUILD_ARGS = --build-arg=ELIXIR_IMAGE=${ELIXIR_IMAGE} --build-arg=APP_DIR=. --build-arg=PHOENIX_VERSION=${PHOENIX_VERSION} --build-arg=NODEJS_VERSION=${NODEJS_VERSION}
+BUILD_ARGS = --build-arg=ELIXIR_IMAGE=${ELIXIR_IMAGE} --build-arg=PHOENIX_VERSION=${PHOENIX_VERSION} --build-arg=NODEJS_VERSION=${NODEJS_VERSION}
 
 .PHONY: help # List the Makefile targets and their descriptions
 help:
@@ -52,12 +61,12 @@ help:
 
 .PHONY: build_initial
 build_initial:
-	${DOCKER} build -t ${TAG_INIT} ${BUILD_ARGS} .
-
+	$(eval TMPDIR := $(shell mktemp -d -p .))
+	${DOCKER} build -t ${TAG_INIT} ${BUILD_ARGS} --build-arg=APP_DIR=${TMPDIR} . ; rmdir --ignore-fail-on-non-empty ${TMPDIR}
 
 .PHONY: build # Build docker image
 build:
-	${DOCKER} build -t ${TAG} ${BUILD_ARGS} .
+	${DOCKER} build -t ${TAG} ${BUILD_ARGS} --build-arg=APP_DIR=. .
 
 .PHONY: init # Initialize new project in current directory
 init: network build_initial
@@ -85,7 +94,7 @@ psql: network
 
 .PHONY: destroy # Destroy all containers and all data
 destroy:
-	@echo -n "Are you sure you want to destroy the database container and all data? [y/N] " && read ans && if [ $${ans:-'N'} = 'y' ]; then make destroy_db; fi
+	@echo -n "Are you sure you want to destroy the database container and all data? [y/N] " && read ans && if [ $${ans:-'N'} = 'y' ]; then $(MAKE) destroy_db; fi
 
 .PHONY: destroy_db
 destroy_db:
