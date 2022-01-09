@@ -3,15 +3,17 @@ FROM ${ELIXIR_IMAGE}
 
 ARG APP_DIR
 ARG PHOENIX_VERSION
-ARG NODEJS_VERSION
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y build-essential inotify-tools && \
+    apt-get install -y inotify-tools && \
     mix local.hex --force && \
     mix archive.install --force hex phx_new $(echo ${PHOENIX_VERSION} | sed 's/^v//') && \
-    mix local.rebar --force && \
-    curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION} | bash && \
-    apt-get install -y nodejs
+    mix local.rebar --force
+
+## NodeJS is not needed for Phoenix >=1.6, leave NODEJS_VERSION blank to skip install:
+ARG NODEJS_VERSION
+RUN test -z "$NODEJS_VERSION" || curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION} | bash && \
+    test -z "$NODEJS_VERSION" || apt-get install -y nodejs
 
 WORKDIR /root/src
 ADD ${APP_DIR}/ /root/src

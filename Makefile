@@ -24,9 +24,10 @@ ELIXIR_IMAGE = "${ELIXIR_REPO}:${ELIXIR_VERSION}"
 ## Choose Phoenix version:
 ## See tags: https://github.com/phoenixframework/phoenix/tags
 PHOENIX_VERSION ?= v1.6.6
-## Choose the version of NodeJS:
-## (Phoenix needs webpack/esbuild installed to process static assets)
-NODEJS_VERSION ?= 16.x
+## Choose the version of NodeJS (leave blank to not install):
+## (Phoenix >=1.6 does not need this. Phoenix <1.6 needs webpack installed to process static assets)
+NODEJS_VERSION =
+#NODEJS_VERSION ?= 16.x
 
 ## Your Docker organizational name:
 DOCKER_ORG ?= localhost
@@ -51,7 +52,7 @@ POSTGRES_DB ?= ${IMAGE}
 ## HTTP port to serve
 HTTP_PORT ?= 4000
 
-RUN_ARGS = --rm -v ${PWD}:/root/src -p ${HTTP_PORT}:4000 --network ${DATABASE_CONTAINER}
+RUN_ARGS = --rm -v ${PWD}:/root/src --network ${DATABASE_CONTAINER}
 BUILD_ARGS = --build-arg=ELIXIR_IMAGE=${ELIXIR_IMAGE} --build-arg=PHOENIX_VERSION=${PHOENIX_VERSION} --build-arg=NODEJS_VERSION=${NODEJS_VERSION}
 
 .PHONY: help # List the Makefile targets and their descriptions
@@ -61,8 +62,7 @@ help:
 
 .PHONY: build_initial
 build_initial:
-	$(eval TMPDIR := $(shell mktemp -d -p .))
-	${DOCKER} build -t ${TAG_INIT} ${BUILD_ARGS} --build-arg=APP_DIR=${TMPDIR} . ; rmdir --ignore-fail-on-non-empty ${TMPDIR}
+	mkdir .empty; ${DOCKER} build -t ${TAG_INIT} ${BUILD_ARGS} --build-arg=APP_DIR=.empty . ; rmdir --ignore-fail-on-non-empty .empty
 
 .PHONY: build # Build docker image
 build:
@@ -106,7 +106,7 @@ shell: network
 
 .PHONY: serve # Run the service container
 serve: network
-	${DOCKER} run -it -w /root/src/${APP} ${RUN_ARGS} ${TAG} mix phx.server
+	${DOCKER} run -it -w /root/src/${APP} -p ${HTTP_PORT}:4000 ${RUN_ARGS} ${TAG} mix phx.server
 
 .PHONY: all # Run everything necessary to start up from scratch
 all: build_initial network init build database serve
